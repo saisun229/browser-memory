@@ -48,7 +48,7 @@ The `dist/` folder is included in this repo — you can load it directly into Ch
 2. Enable **Developer mode** (toggle in the top-right corner)
 3. Click **Load unpacked**
 4. Select the `dist/` folder from this repository
-5. The Browser Memory icon will appear in your toolbar
+5. The Browser Memory icon will appear in your toolbar — click the **Extensions** puzzle-piece icon and then the **pin** icon next to Browser Memory to keep it visible at all times
 
 ### Step 3 — Add your API key
 
