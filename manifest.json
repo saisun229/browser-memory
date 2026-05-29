@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Browser Memory",
+  "version": "0.1.0",
+  "description": "Save highlighted text and ask questions over it.",
+  "action": {
+    "default_popup": "src/popup/index.html"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "permissions": ["contextMenus", "storage", "activeTab"]
+}
