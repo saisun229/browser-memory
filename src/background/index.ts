@@ -30,10 +30,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const { openai_api_key: apiKey } = await chrome.storage.local.get('openai_api_key')
 
   let embedding: number[] | null = null
+  let titleEmbedding: number[] | null = null
 
   if (apiKey) {
     try {
-      embedding = await fetchEmbedding(text, apiKey)
+      const results = await Promise.all([
+        fetchEmbedding(text, apiKey),
+        title ? fetchEmbedding(title, apiKey) : Promise.resolve(null),
+      ])
+      embedding = results[0]
+      titleEmbedding = results[1]
     } catch (err) {
       console.error('[Browser Memory] embedding failed, saving without vector:', err)
     }
@@ -48,6 +54,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     title,
     timestamp: Date.now(),
     embedding,
+    titleEmbedding,
   })
 
   chrome.action.setBadgeText({ text: '✓' })

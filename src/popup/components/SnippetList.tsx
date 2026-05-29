@@ -29,8 +29,11 @@ export default function SnippetList() {
     try {
       const { openai_api_key: apiKey } = await chrome.storage.local.get('openai_api_key')
       if (!apiKey) throw new Error('No API key set')
-      const embedding = await fetchEmbedding(snippet.text, apiKey)
-      await db.snippets.update(snippet.id, { embedding })
+      const [embedding, titleEmbedding] = await Promise.all([
+        fetchEmbedding(snippet.text, apiKey),
+        snippet.title ? fetchEmbedding(snippet.title, apiKey) : Promise.resolve(null),
+      ])
+      await db.snippets.update(snippet.id, { embedding, titleEmbedding })
       await load()
     } catch (err) {
       alert('Retry failed: ' + (err instanceof Error ? err.message : 'Unknown error'))

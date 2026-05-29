@@ -7,6 +7,7 @@ export interface SavedMemory {
   title: string
   timestamp: number
   embedding: number[] | null
+  titleEmbedding: number[] | null
 }
 
 class BrowserMemoryDb extends Dexie {

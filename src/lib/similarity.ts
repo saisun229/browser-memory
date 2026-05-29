@@ -20,7 +20,11 @@ export function topN(
   threshold: number
 ): (SnippetWithEmbedding & { score: number })[] {
   return snippets
-    .map(s => ({ ...s, score: cosineSimilarity(query, s.embedding) }))
+    .map(s => {
+      const textSim = cosineSimilarity(query, s.embedding)
+      const titleSim = s.titleEmbedding ? cosineSimilarity(query, s.titleEmbedding) : 0
+      return { ...s, score: Math.max(textSim, titleSim) }
+    })
     .filter(s => s.score >= threshold)
     .sort((a, b) => b.score - a.score)
     .slice(0, n)
