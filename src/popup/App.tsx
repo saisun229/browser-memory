@@ -1,32 +1,25 @@
 import { useEffect, useState } from 'react'
-import { db, type SavedMemory } from '../lib/db'
 import ApiKeySetup from './components/ApiKeySetup'
+import ChatView, { type Source } from './components/ChatView'
+import SnippetList from './components/SnippetList'
 
 type View = 'loading' | 'setup' | 'main'
+type Tab = 'ask' | 'saved'
+
+// Stub replaced in Phase 7
+async function stubAsk(_question: string): Promise<{ answer: string; sources: Source[] }> {
+  return { answer: '', sources: [] }
+}
 
 export default function App() {
   const [view, setView] = useState<View>('loading')
-  const [count, setCount] = useState<number>(0)
-  const [latest, setLatest] = useState<SavedMemory | null>(null)
+  const [tab, setTab] = useState<Tab>('ask')
 
   useEffect(() => {
-    async function init() {
-      const result = await chrome.storage.local.get('openai_api_key')
+    chrome.storage.local.get('openai_api_key').then(result => {
       setView(result.openai_api_key ? 'main' : 'setup')
-    }
-    init()
+    })
   }, [])
-
-  useEffect(() => {
-    if (view !== 'main') return
-    async function loadSnippets() {
-      const total = await db.snippets.count()
-      const last = await db.snippets.orderBy('timestamp').last()
-      setCount(total)
-      setLatest(last ?? null)
-    }
-    loadSnippets()
-  }, [view])
 
   async function handleChangeKey() {
     await chrome.storage.local.remove('openai_api_key')
@@ -41,25 +34,38 @@ export default function App() {
 
   return (
     <div style={{ padding: '16px' }}>
-      <h2 style={{ margin: '0 0 12px' }}>Browser Memory</h2>
-      <p style={{ margin: '0 0 8px' }}>Saved snippets: <strong>{count}</strong></p>
-      {latest ? (
-        <div style={{ borderTop: '1px solid #eee', paddingTop: '8px' }}>
-          <p style={{ margin: '0 0 4px', fontSize: '11px', color: '#999' }}>Latest</p>
-          <p style={{ margin: '0 0 4px', fontSize: '13px' }}>
-            {latest.text.length > 100 ? latest.text.slice(0, 100) + '…' : latest.text}
-          </p>
-          <p style={{ margin: 0, fontSize: '11px', color: '#666' }}>{latest.url}</p>
-        </div>
-      ) : (
-        <p style={{ fontSize: '13px', color: '#999' }}>No snippets saved yet.</p>
-      )}
-      <button
-        onClick={handleChangeKey}
-        style={{ marginTop: '16px', fontSize: '11px', color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-      >
-        Change API key
-      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h2 style={{ margin: 0, fontSize: '16px' }}>Browser Memory</h2>
+        <button
+          onClick={handleChangeKey}
+          style={{ fontSize: '11px', color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+        >
+          API key
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px', borderBottom: '1px solid #eee', marginBottom: '12px' }}>
+        {(['ask', 'saved'] as Tab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            style={{
+              padding: '4px 0 8px',
+              fontSize: '13px',
+              background: 'none',
+              border: 'none',
+              borderBottom: tab === t ? '2px solid #000' : '2px solid transparent',
+              cursor: 'pointer',
+              fontWeight: tab === t ? 600 : 400,
+            }}
+          >
+            {t === 'ask' ? 'Ask' : 'Saved'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'ask' && <ChatView onAsk={stubAsk} />}
+      {tab === 'saved' && <SnippetList />}
     </div>
   )
 }
