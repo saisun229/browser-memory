@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react'
 import ApiKeySetup from './components/ApiKeySetup'
-import ChatView, { type Source } from './components/ChatView'
+import ChatView from './components/ChatView'
 import SnippetList from './components/SnippetList'
+import { askQuestion } from '../lib/ask'
 
 type View = 'loading' | 'setup' | 'main'
 type Tab = 'ask' | 'saved'
-
-// Stub replaced in Phase 7
-async function stubAsk(_question: string): Promise<{ answer: string; sources: Source[] }> {
-  return { answer: '', sources: [] }
-}
 
 export default function App() {
   const [view, setView] = useState<View>('loading')
@@ -64,7 +60,7 @@ export default function App() {
         ))}
       </div>
 
-      {tab === 'ask' && <ChatView onAsk={stubAsk} />}
+      {tab === 'ask' && <ChatView onAsk={askQuestion} />}
       {tab === 'saved' && <SnippetList />}
     </div>
   )
