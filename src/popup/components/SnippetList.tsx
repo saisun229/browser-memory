@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { db, type SavedMemory } from '../../lib/db'
+import { fetchEmbedding } from '../../lib/embeddings'
 
 export default function SnippetList() {
   const [snippets, setSnippets] = useState<SavedMemory[]>([])
+  const [retrying, setRetrying] = useState<Set<string>>(new Set())
 
   async function load() {
     const all = await db.snippets.orderBy('timestamp').reverse().toArray()
@@ -20,6 +22,25 @@ export default function SnippetList() {
     if (!confirm('Delete all saved snippets? This cannot be undone.')) return
     await db.snippets.clear()
     setSnippets([])
+  }
+
+  async function retryEmbedding(snippet: SavedMemory) {
+    setRetrying(prev => new Set(prev).add(snippet.id))
+    try {
+      const { openai_api_key: apiKey } = await chrome.storage.local.get('openai_api_key')
+      if (!apiKey) throw new Error('No API key set')
+      const embedding = await fetchEmbedding(snippet.text, apiKey)
+      await db.snippets.update(snippet.id, { embedding })
+      await load()
+    } catch (err) {
+      alert('Retry failed: ' + (err instanceof Error ? err.message : 'Unknown error'))
+    } finally {
+      setRetrying(prev => {
+        const next = new Set(prev)
+        next.delete(snippet.id)
+        return next
+      })
+    }
   }
 
   if (snippets.length === 0) {
@@ -42,8 +63,19 @@ export default function SnippetList() {
               {s.title || s.url}
             </p>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '10px', color: '#bbb' }}>
-                {new Date(s.timestamp).toLocaleDateString()} · {s.embedding ? 'indexed' : 'no embedding'}
+              <span style={{ fontSize: '10px', color: '#bbb', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {new Date(s.timestamp).toLocaleDateString()}
+                {s.embedding === null ? (
+                  <button
+                    onClick={() => retryEmbedding(s)}
+                    disabled={retrying.has(s.id)}
+                    style={{ fontSize: '10px', color: '#f90', background: 'none', border: '1px solid #f90', borderRadius: '3px', cursor: 'pointer', padding: '1px 5px' }}
+                  >
+                    {retrying.has(s.id) ? 'Retrying…' : 'No embedding — Retry'}
+                  </button>
+                ) : (
+                  <span style={{ color: '#4CAF50' }}>indexed</span>
+                )}
               </span>
               <button
                 onClick={() => deleteSnippet(s.id)}

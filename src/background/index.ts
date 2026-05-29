@@ -3,14 +3,22 @@ import { fetchEmbedding } from '../lib/embeddings'
 
 const MENU_ITEM_ID = 'save-to-browser-memory'
 
-chrome.runtime.onInstalled.addListener(() => {
+async function updateBadge() {
+  const count = await db.snippets.count()
+  chrome.action.setBadgeText({ text: count > 0 ? count.toString() : '' })
+  chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
+}
+
+chrome.runtime.onInstalled.addListener(async () => {
   chrome.contextMenus.create({
     id: MENU_ITEM_ID,
     title: 'Save to Browser Memory',
     contexts: ['selection'],
   })
-  console.log('[Browser Memory] context menu registered')
+  await updateBadge()
 })
+
+chrome.runtime.onStartup.addListener(updateBadge)
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ITEM_ID) return
@@ -26,7 +34,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (apiKey) {
     try {
       embedding = await fetchEmbedding(text, apiKey)
-      console.log('[Browser Memory] embedding fetched, dims:', embedding.length)
     } catch (err) {
       console.error('[Browser Memory] embedding failed, saving without vector:', err)
     }
@@ -43,5 +50,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     embedding,
   })
 
-  console.log('[Browser Memory] saved snippet', { url, title, hasEmbedding: embedding !== null })
+  chrome.action.setBadgeText({ text: '✓' })
+  chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' })
+  setTimeout(updateBadge, 1500)
 })
