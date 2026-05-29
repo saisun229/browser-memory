@@ -1,19 +1,43 @@
 import { useEffect, useState } from 'react'
 import { db, type SavedMemory } from '../lib/db'
+import ApiKeySetup from './components/ApiKeySetup'
+
+type View = 'loading' | 'setup' | 'main'
 
 export default function App() {
+  const [view, setView] = useState<View>('loading')
   const [count, setCount] = useState<number>(0)
   const [latest, setLatest] = useState<SavedMemory | null>(null)
 
   useEffect(() => {
-    async function load() {
+    async function init() {
+      const result = await chrome.storage.local.get('openai_api_key')
+      setView(result.openai_api_key ? 'main' : 'setup')
+    }
+    init()
+  }, [])
+
+  useEffect(() => {
+    if (view !== 'main') return
+    async function loadSnippets() {
       const total = await db.snippets.count()
       const last = await db.snippets.orderBy('timestamp').last()
       setCount(total)
       setLatest(last ?? null)
     }
-    load()
-  }, [])
+    loadSnippets()
+  }, [view])
+
+  async function handleChangeKey() {
+    await chrome.storage.local.remove('openai_api_key')
+    setView('setup')
+  }
+
+  if (view === 'loading') return null
+
+  if (view === 'setup') {
+    return <ApiKeySetup onSave={() => setView('main')} />
+  }
 
   return (
     <div style={{ padding: '16px' }}>
@@ -30,6 +54,12 @@ export default function App() {
       ) : (
         <p style={{ fontSize: '13px', color: '#999' }}>No snippets saved yet.</p>
       )}
+      <button
+        onClick={handleChangeKey}
+        style={{ marginTop: '16px', fontSize: '11px', color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+      >
+        Change API key
+      </button>
     </div>
   )
 }
