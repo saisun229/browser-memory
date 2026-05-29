@@ -1,3 +1,5 @@
+import { db } from '../lib/db'
+
 const MENU_ITEM_ID = 'save-to-browser-memory'
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -9,12 +11,21 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('[Browser Memory] context menu registered')
 })
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ITEM_ID) return
 
   const text = info.selectionText ?? ''
   const url = tab?.url ?? ''
   const title = tab?.title ?? ''
 
-  console.log('[Browser Memory] saving snippet', { text, url, title })
+  await db.snippets.add({
+    id: crypto.randomUUID(),
+    text,
+    url,
+    title,
+    timestamp: Date.now(),
+    embedding: null,
+  })
+
+  console.log('[Browser Memory] saved snippet', { text, url, title })
 })
